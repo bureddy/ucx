@@ -47,8 +47,8 @@ static ucs_status_t uct_cuda_copy_rkey_release(uct_md_component_t *mdc, uct_rkey
     return UCS_OK;
 }
 
-static ucs_status_t uct_cuda_mem_reg(uct_md_h md, void *address, size_t length,
-                                     unsigned flags, uct_mem_h *memh_p)
+static ucs_status_t uct_cuda_copy_mem_reg(uct_md_h md, void *address, size_t length,
+                                          unsigned flags, uct_mem_h *memh_p)
 {
     ucs_status_t rc;
     uct_mem_h * mem_hndl = NULL;
@@ -64,7 +64,7 @@ static ucs_status_t uct_cuda_mem_reg(uct_md_h md, void *address, size_t length,
     return rc;
 }
 
-static ucs_status_t uct_cuda_mem_dereg(uct_md_h md, uct_mem_h memh)
+static ucs_status_t uct_cuda_copy_mem_dereg(uct_md_h md, uct_mem_h memh)
 {
     ucs_free(memh);
     return UCS_OK;
