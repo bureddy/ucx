@@ -106,6 +106,30 @@ static ucs_status_t ucp_memh_reg_mds(ucp_context_h context, ucp_mem_h memh,
     return UCS_OK;
 }
 
+
+static ucs_status_t ucp_memh_detect_mds(ucp_context_h context, ucp_mem_h memh)
+{
+    ucs_status_t status;
+    unsigned md_index;
+
+    for (md_index = 0; md_index < context->num_mds; ++md_index) {
+        int is_cuda_device = 0;
+        status = uct_md_mem_detect(context->tl_mds[md_index].md, memh, memh->address,
+                                    memh->length, &is_cuda_device);
+        if (status != UCS_OK) {
+            return status;
+        }
+ 
+        if (is_cuda_device)
+            memh->md_type |= UCP_MD_FLAG_DEVICE_CUDA;
+        else
+            memh->md_type |= UCP_MD_FLAG_DEVICE_HOST;
+    }
+
+    return UCS_OK;
+}
+
+
 /**
  * @return Whether MD number 'md_index' is selected by the configuration as part
  *         of allocation method number 'config_method_index'.
@@ -174,6 +198,7 @@ allocated:
         uct_mem_free(&mem);
     }
 out:
+    status = ucp_memh_detect_mds(context, memh);
     ucs_free(mds);
     return status;
 }

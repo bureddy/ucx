@@ -38,6 +38,10 @@ typedef struct ucp_rkey {
     uct_rkey_bundle_t             uct[0];  /* Remote key for every MD */
 } ucp_rkey_t;
 
+typedef enum ucp_mem_type {
+    UCP_MD_FLAG_DEVICE_HOST = UCS_BIT(0),
+    UCP_MD_FLAG_DEVICE_CUDA = UCS_BIT(1)
+} ucp_mem_type_t;
 
 /**
  * Memory handle.
@@ -51,6 +55,7 @@ typedef struct ucp_mem {
     uct_alloc_method_t            alloc_method; /* Method used to allocate the memory */
     uct_md_h                      alloc_md;     /* MD used to allocated the memory */
     ucp_md_map_t                  md_map;       /* Which MDs have valid memory handles */
+    ucp_md_map_t                  md_type;
     uct_mem_h                     uct[0];       /* Valid memory handles, as popcount(md_map) */
 } ucp_mem_t;
 

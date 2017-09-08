@@ -506,3 +506,8 @@ ucs_status_t uct_md_mem_dereg(uct_md_h md, uct_mem_h memh)
 {
     return md->ops->mem_dereg(md, memh);
 }
+
+ucs_status_t uct_md_mem_detect(uct_md_h md, uct_mem_h memh, void *addr, size_t len, int *is_cuda_device)
+{
+    return md->ops->mem_detect(md, memh, addr, len, is_cuda_device);
+}
