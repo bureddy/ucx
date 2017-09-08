@@ -681,6 +681,7 @@ ucs_status_t uct_query_md_resources(uct_md_resource_desc_t **resources_p,
  */
 void uct_release_md_resource_list(uct_md_resource_desc_t *resources);
 
+ucs_status_t uct_md_mem_detect(uct_md_h md, uct_mem_h memh, void *addr, size_t len, int *is_cuda_device);
 
 /**
  * @ingroup UCT_RESOURCE

@@ -8,6 +8,8 @@
 #define UCT_CUDA_CONTEXT_H
 
 #include <uct/base/uct_md.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 #define UCT_CUDA_MD_NAME           "gpu"
 
