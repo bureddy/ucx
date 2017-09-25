@@ -11,7 +11,7 @@
 
 
 #define UCT_GDR_COPY_TL_NAME    "gdr_copy"
-#define UCT_CUDA_DEV_NAME   "gpu0"
+#define UCT_CUDA_DEV_NAME   "gdrcopy0"
 
 
 typedef struct uct_gdr_copy_iface {
