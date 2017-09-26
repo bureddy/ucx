@@ -600,7 +600,7 @@ ucp_wireup_add_addr_domain_lanes(ucp_ep_h ep, unsigned address_count,
 
     status = ucp_wireup_select_transport(ep, address_list_copy, address_count,
                                          criteria, tl_bitmap, remote_md_map,
-                                         1, &rsc_index, &addr_index, &score);
+                                         0, &rsc_index, &addr_index, &score);
     if (status != UCS_OK) {
         goto out_free_address_list;
     }
@@ -633,7 +633,7 @@ ucp_wireup_add_addr_domain_lanes(ucp_ep_h ep, unsigned address_count,
 out_free_address_list:
     ucs_free(address_list_copy);
 out:
-    return status;
+    return UCS_OK;
 }
 static ucs_status_t ucp_wireup_add_domain_lane(ucp_ep_h ep, const ucp_ep_params_t *params,
                                              unsigned address_count,
