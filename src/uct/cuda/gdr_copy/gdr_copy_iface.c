@@ -37,7 +37,7 @@ static ucs_status_t uct_gdr_copy_iface_get_address(uct_iface_h tl_iface,
 static int uct_gdr_copy_iface_is_reachable(const uct_iface_h iface, const uct_device_addr_t *dev_addr,
                                        const uct_iface_addr_t *iface_addr)
 {
-    return 0;
+    return 1;
 }
 
 static ucs_status_t uct_gdr_copy_iface_query(uct_iface_h iface,
@@ -49,7 +49,9 @@ static ucs_status_t uct_gdr_copy_iface_query(uct_iface_h iface,
     iface_attr->iface_addr_len          = sizeof(int);
     iface_attr->device_addr_len         = 0;
     iface_attr->ep_addr_len             = 0;
-    iface_attr->cap.flags               = 0;
+    iface_attr->cap.flags               = UCT_IFACE_FLAG_CONNECT_TO_IFACE |
+                                          UCT_IFACE_FLAG_PUT_ZCOPY |
+                                          UCT_IFACE_FLAG_PENDING;  
 
     iface_attr->cap.put.max_short       = 0;
     iface_attr->cap.put.max_bcopy       = 0;
@@ -75,10 +77,10 @@ static ucs_status_t uct_gdr_copy_iface_query(uct_iface_h iface,
     iface_attr->cap.am.max_hdr          = 0;
     iface_attr->cap.am.max_iov          = 1;
 
-    iface_attr->latency.overhead        = 1e-9;
+    iface_attr->latency.overhead        = 2e-6;
     iface_attr->latency.growth          = 0;
     iface_attr->bandwidth               = 6911 * 1024.0 * 1024.0;
-    iface_attr->overhead                = 0;
+    iface_attr->overhead                = 100;
     iface_attr->priority                = 0;
 
     return UCS_OK;
@@ -86,6 +88,8 @@ static ucs_status_t uct_gdr_copy_iface_query(uct_iface_h iface,
 
 static uct_iface_ops_t uct_gdr_copy_iface_ops = {
     .ep_put_zcopy             = uct_gdr_copy_ep_put_zcopy,
+    .ep_pending_add           = ucs_empty_function_return_busy,
+    .ep_pending_purge         = ucs_empty_function,
     .ep_flush                 = uct_base_ep_flush,
     .ep_fence                 = uct_base_ep_fence,
     .ep_create_connected      = UCS_CLASS_NEW_FUNC_NAME(uct_gdr_copy_ep_t),

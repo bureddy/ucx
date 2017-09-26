@@ -14,7 +14,7 @@
 
 
 #define UCT_CUDA_COPY_TL_NAME    "cuda_copy"
-#define UCT_CUDA_DEV_NAME   "gpu0"
+#define UCT_CUDA_DEV_NAME   "cudacopy0"
 
 #define CUDA_FUNC(func)  ({                             \
 ucs_status_t _status = UCS_OK;                          \

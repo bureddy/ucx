@@ -80,6 +80,9 @@ typedef struct ucp_ep_config_key {
     /* Lanes for atomic operations, sorted by priority, highest first */
     ucp_lane_index_t       amo_lanes[UCP_MAX_LANES];
 
+    /* Lanes for domain operations, sorted by priority, highest first */
+    ucp_lane_index_t       domain_lanes[UCP_MAX_LANES];
+
     /* Bitmap of remote mds which are reachable from this endpoint (with any set
      * of transports which could be selected in the future).
      */
