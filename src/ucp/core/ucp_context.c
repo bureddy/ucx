@@ -177,6 +177,9 @@ static ucs_config_field_t ucp_config_table[] = {
    " If set to a value different from \"auto\" it will override the value passed\n"
    "to ucp_init()",
    ucs_offsetof(ucp_config_t, ctx.estimated_num_eps), UCS_CONFIG_TYPE_ULUNITS},
+  {"RNDV_FRAG_SIZE", "65536",
+   "RNDV fragment size \n",
+   ucs_offsetof(ucp_config_t, ctx.rndv_frag_size), UCS_CONFIG_TYPE_MEMUNITS},
 
   {NULL}
 };
