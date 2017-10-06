@@ -36,6 +36,7 @@ enum {
     UCP_REQUEST_FLAG_RNDV                 = UCS_BIT(9),
     UCP_REQUEST_FLAG_OFFLOADED            = UCS_BIT(10),
     UCP_REQUEST_FLAG_BLOCK_OFFLOAD        = UCS_BIT(11),
+    UCP_REQUEST_FLAG_RNDV_RKEY            = UCS_BIT(12),
 
 #if ENABLE_ASSERT
     UCP_REQUEST_DEBUG_FLAG_EXTERNAL       = UCS_BIT(15)
@@ -119,6 +120,13 @@ struct ucp_request {
                 } rndv_get;
 
                 struct {
+                    uint64_t      remote_address; /* address of the sender's data buffer */
+                    uintptr_t     remote_request; /* pointer to the sender's send request */
+                    uct_rkey_bundle_t rkey_bundle;
+                    ucp_request_t *sreq;    /* send request on the send side */
+                } rndv_put;
+
+                struct {
                     ucp_request_callback_t    flushed_cb;/* Called when flushed */
                     uct_worker_cb_id_t        slow_cb_id;/* Slow-path callback */
                     ucp_lane_map_t            lanes;     /* Which lanes need to be flushed */
@@ -163,6 +171,7 @@ struct ucp_request {
             uint64_t              sn;       /* Tag match sequence */
             ucp_tag_recv_callback_t cb;     /* Completion callback */
             ucp_tag_recv_info_t   info;     /* Completion info to fill */
+            ucp_rsc_index_t       reg_rsc;  /* Resource on which memory is registered */
             ucp_dt_state_t        state;
             ucp_worker_t          *worker;
             ucp_mem_desc_t        *rdesc;
@@ -193,7 +202,11 @@ int ucp_request_pending_add(ucp_request_t *req, ucs_status_t *req_status);
 
 ucs_status_t ucp_request_send_buffer_reg(ucp_request_t *req, ucp_lane_index_t lane);
 
+ucs_status_t ucp_request_recv_buffer_reg(ucp_request_t *req, ucp_ep_h ep, ucp_lane_index_t lane);
+
 void ucp_request_send_buffer_dereg(ucp_request_t *req, ucp_lane_index_t lane);
+
+void ucp_request_recv_buffer_dereg(ucp_request_t *req);
 
 ucs_status_t ucp_request_memory_reg(ucp_context_t *context, ucp_rsc_index_t rsc_index,
                                     void *buffer, size_t length,
