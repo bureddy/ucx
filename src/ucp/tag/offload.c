@@ -64,7 +64,7 @@ void ucp_tag_offload_completed(uct_tag_context_t *self, uct_tag_t stag,
     }
 
     if (req->recv.rdesc != NULL) {
-        status = ucp_dt_unpack(req->recv.datatype, req->recv.buffer, req->recv.length,
+        status = ucp_dt_unpack(req, req->recv.datatype, req->recv.buffer, req->recv.length,
                                &req->recv.state, req->recv.rdesc + 1, length, 1);
         ucs_mpool_put_inline(req->recv.rdesc);
     } else {
@@ -413,7 +413,7 @@ ucs_status_t ucp_tag_offload_sw_rndv(uct_pending_req_t *self)
         addr         = (uintptr_t*)(rndv_hdr + 1);
         *addr        = (uintptr_t)req->send.buffer;
         rndv_hdr->flags = 0;
-        ucp_tag_rndv_pack_rkey(req, req->send.lane, addr + 1, &rndv_hdr->flags);
+        ucp_tag_rndv_pack_rkey(req, req->send.ep, req->send.lane, addr + 1, &rndv_hdr->flags, 1);
     } else {
         rndv_hdr_len = sizeof(ucp_sw_rndv_hdr_t);
         rndv_hdr     = ucs_alloca(rndv_hdr_len);

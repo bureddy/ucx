@@ -830,6 +830,7 @@ static void ucp_ep_config_set_rndv_thresh(ucp_worker_t *worker,
     rndv_thresh = ucs_max(rndv_thresh, iface_attr->cap.get.min_zcopy);
 
     config->tag.rndv.max_get_zcopy = iface_attr->cap.get.max_zcopy;
+    config->tag.rndv.max_put_zcopy = iface_attr->cap.put.max_zcopy;
     config->tag.rndv.rma_thresh    = ucs_min(rndv_thresh, adjust_min_val);
 }
 
@@ -885,6 +886,7 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
 {
     ucp_context_h context = worker->context;
     ucp_ep_rma_config_t *rma_config;
+    ucp_ep_addr_domain_config_t *domain_config;
     uct_iface_attr_t *iface_attr;
     uct_md_attr_t *md_attr;
     ucp_rsc_index_t rsc_index;
@@ -903,12 +905,14 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
     config->tag.eager.zcopy_auto_thresh = 0;
     config->am.zcopy_auto_thresh        = 0;
     config->p2p_lanes                   = 0;
+    config->domain_lanes                = 0;
     config->bcopy_thresh                = context->config.ext.bcopy_thresh;
     config->tag.lane                    = UCP_NULL_LANE;
     config->tag.proto                   = &ucp_tag_eager_proto;
     config->tag.sync_proto              = &ucp_tag_eager_sync_proto;
     config->tag.rndv.rma_thresh         = SIZE_MAX;
     config->tag.rndv.max_get_zcopy      = SIZE_MAX;
+    config->tag.rndv.max_put_zcopy      = SIZE_MAX;
     config->tag.rndv.am_thresh          = SIZE_MAX;
     config->stream.proto                = &ucp_stream_am_proto;
     max_rndv_thresh                     = SIZE_MAX;
@@ -990,6 +994,23 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
         }
     }
 
+    /* Configuration for memory domains */
+    for (lane = 0; lane < config->key.num_lanes; ++lane) {
+        if (config->key.domain_lanes[lane] == UCP_NULL_LANE) {
+            continue;
+        }
+        config->domain_lanes |= UCS_BIT(lane);
+
+        domain_config = &config->domain[lane];
+        rsc_index  = config->key.lanes[lane].rsc_index;
+        iface_attr = &worker->ifaces[rsc_index].attr;
+
+        domain_config->tag.eager.max_short = iface_attr->cap.am.max_short;
+        //TODO: zcopy thrshold should be based on the ep AM lane capability with domain addr(i.e  can UCT  do zcopy from domain) 
+        memset(domain_config->tag.eager.zcopy_thresh, 0, UCP_MAX_IOV * sizeof(size_t));
+
+    }
+        
     /* Configuration for remote memory access */
     for (lane = 0; lane < config->key.num_lanes; ++lane) {
         if (ucp_ep_config_get_rma_prio(config->key.rma_lanes, lane) == -1) {
