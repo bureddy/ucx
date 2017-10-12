@@ -544,6 +544,20 @@ void ucp_ep_destroy_internal(ucp_ep_h ep, const char *message)
 
 static void ucp_ep_disconnected(ucp_ep_h ep)
 {
+    ucp_recv_desc_t  *rdesc;
+
+    while (!ucs_queue_is_empty(&ep->stream_data)) {
+        rdesc = ucs_queue_pull_elem_non_empty(&ep->stream_data, ucp_recv_desc_t,
+                                              stream_queue);
+
+        if (ucs_unlikely(rdesc->flags & UCP_RECV_DESC_FLAG_UCT_DESC)) {
+            /* TODO: remove ucp_eager_sync_hdr_t usage */
+            uct_iface_release_desc((char*)rdesc - sizeof(ucp_eager_sync_hdr_t));
+        } else {
+            ucs_mpool_put_inline(rdesc);
+        }
+    }
+
     if (ep->flags & UCP_EP_FLAG_REMOTE_CONNECTED) {
         /* Endpoints which have remote connection are destroyed only when the
          * worker is destroyed, to enable remote endpoints keep sending
@@ -830,6 +844,7 @@ static void ucp_ep_config_set_rndv_thresh(ucp_worker_t *worker,
     rndv_thresh = ucs_max(rndv_thresh, iface_attr->cap.get.min_zcopy);
 
     config->tag.rndv.max_get_zcopy = iface_attr->cap.get.max_zcopy;
+    config->tag.rndv.max_put_zcopy = iface_attr->cap.put.max_zcopy;
     config->tag.rndv.rma_thresh    = ucs_min(rndv_thresh, adjust_min_val);
 }
 
@@ -909,6 +924,7 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
     config->tag.sync_proto              = &ucp_tag_eager_sync_proto;
     config->tag.rndv.rma_thresh         = SIZE_MAX;
     config->tag.rndv.max_get_zcopy      = SIZE_MAX;
+    config->tag.rndv.max_put_zcopy      = SIZE_MAX;
     config->tag.rndv.am_thresh          = SIZE_MAX;
     config->stream.proto                = &ucp_stream_am_proto;
     max_rndv_thresh                     = SIZE_MAX;

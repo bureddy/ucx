@@ -569,7 +569,7 @@ static ucs_status_t uct_rc_verbs_ep_tag_qp_create(uct_rc_verbs_iface_t *iface,
         /* Send queue of this QP will be used by FW for HW RNDV. Driver requires
          * such a QP to be initialized with zero send queue length. */
         status = uct_rc_iface_qp_create(&iface->super, IBV_QPT_RC, &ep->tm_qp,
-                                        &cap, iface->verbs_common.tm.xrq.srq, 0);
+                                        &cap, 0);
         if (status != UCS_OK) {
             return status;
         }
@@ -831,10 +831,6 @@ UCS_CLASS_INIT_FUNC(uct_rc_verbs_ep_t, uct_iface_h tl_iface)
     uct_rc_txqp_available_set(&self->super.txqp, iface->config.tx_max_wr);
     uct_rc_verbs_txcnt_init(&self->txcnt);
 
-    uct_worker_progress_add_safe(iface->super.super.super.worker,
-                                 iface->progress, iface,
-                                 &iface->super.super.super.prog);
-
     return uct_rc_verbs_ep_tag_qp_create(iface, self);
 }
 
@@ -842,8 +838,7 @@ static UCS_CLASS_CLEANUP_FUNC(uct_rc_verbs_ep_t)
 {
     uct_rc_verbs_iface_t *iface = ucs_derived_of(self->super.super.super.iface,
                                                  uct_rc_verbs_iface_t);
-    uct_worker_progress_remove(iface->super.super.super.worker,
-                               &iface->super.super.super.prog);
+
     /* NOTE: usually, ci == pi here, but if user calls
      *       flush(UCT_FLUSH_FLAG_CANCEL) then ep_destroy without next progress,
      *       TX-completion handler is not able to return CQ credits because

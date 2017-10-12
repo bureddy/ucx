@@ -292,14 +292,16 @@ void ucp_worker_signal_internal(ucp_worker_h worker)
 static void
 ucp_worker_iface_error_handler(void *arg, uct_ep_h uct_ep, ucs_status_t status)
 {
-    ucp_worker_h         worker           = (ucp_worker_h)arg;
-    ucp_ep_h             ucp_ep           = NULL;
-    uct_ep_h             aux_ep           = NULL;
-    uint64_t             dest_uuid UCS_V_UNUSED;
-    ucp_ep_h             ucp_ep_iter;
-    khiter_t             ucp_ep_errh_iter;
-    ucp_err_handler_cb_t err_cb;
-    ucp_lane_index_t     lane, n_lanes, failed_lane;
+    ucp_worker_h            worker           = (ucp_worker_h)arg;
+    ucp_ep_h                ucp_ep           = NULL;
+    uct_ep_h                aux_ep           = NULL;
+    uct_tl_resource_desc_t* tl_rsc;
+    uint64_t                dest_uuid UCS_V_UNUSED;
+    ucp_ep_h                ucp_ep_iter;
+    khiter_t                ucp_ep_errh_iter;
+    ucp_err_handler_cb_t    err_cb;
+    ucp_lane_index_t        lane, n_lanes, failed_lane;
+    ucp_rsc_index_t         rsc_index;
 
     /* TODO: need to optimize uct_ep -> ucp_ep lookup */
     kh_foreach(&worker->ep_hash, dest_uuid, ucp_ep_iter, {
@@ -318,6 +320,9 @@ ucp_worker_iface_error_handler(void *arg, uct_ep_h uct_ep, ucs_status_t status)
     return;
 
 found_ucp_ep:
+
+    rsc_index   = ucp_ep_get_rsc_index(ucp_ep, lane);
+    tl_rsc      = &worker->context->tl_rscs[rsc_index].tl_rsc;
 
     /* Purge outstanding */
     uct_ep_pending_purge(ucp_ep_iter->uct_eps[lane], ucp_ep_err_pending_purge,
@@ -369,12 +374,14 @@ found_ucp_ep:
         err_cb = kh_val(&worker->ep_errh_hash, ucp_ep_errh_iter);
         err_cb(ucp_ep->user_data, ucp_ep, status);
     } else {
-        ucs_error("Error %s was not handled for ep %p",
-                  ucs_status_string(status), ucp_ep);
+        ucs_error("Error %s was not handled for ep %p - "
+                  UCT_TL_RESOURCE_DESC_FMT,
+                  ucs_status_string(status), ucp_ep,
+                  UCT_TL_RESOURCE_DESC_ARG(tl_rsc));
     }
 }
 
-void ucp_worker_iface_activate(ucp_worker_iface_t *wiface)
+void ucp_worker_iface_activate(ucp_worker_iface_t *wiface, unsigned uct_flags)
 {
     ucp_worker_h worker = wiface->worker;
     ucs_status_t status;
@@ -401,7 +408,7 @@ void ucp_worker_iface_activate(ucp_worker_iface_t *wiface)
     }
 
     uct_iface_progress_enable(wiface->iface,
-                              UCT_PROGRESS_SEND | UCT_PROGRESS_RECV);
+                              UCT_PROGRESS_SEND | UCT_PROGRESS_RECV | uct_flags);
 }
 
 static void ucp_worker_iface_deactivate(ucp_worker_iface_t *wiface, int force)
@@ -444,7 +451,12 @@ void ucp_worker_iface_progress_ep(ucp_worker_iface_t *wiface)
     ucs_trace_func("iface=%p", wiface->iface);
 
     UCS_ASYNC_BLOCK(&wiface->worker->async);
-    ucp_worker_iface_activate(wiface);
+
+    /* This function may be called from progress thread (such as when processing
+     * wireup messages), so ask UCT to be thread-safe.
+     */
+    ucp_worker_iface_activate(wiface, UCT_PROGRESS_THREAD_SAFE);
+
     UCS_ASYNC_UNBLOCK(&wiface->worker->async);
 }
 
@@ -481,7 +493,7 @@ static ucs_status_t ucp_worker_iface_check_events_do(ucp_worker_iface_t *wiface,
     *progress_count = uct_iface_progress(wiface->iface);
     if (prev_am_count != wiface->proxy_am_count) {
         /* Received relevant active messages, activate the interface */
-        ucp_worker_iface_activate(wiface);
+        ucp_worker_iface_activate(wiface, 0);
         return UCS_OK;
     } else if (*progress_count == 0) {
         /* Arm the interface to wait for next event */
@@ -675,10 +687,6 @@ ucp_worker_add_iface(ucp_worker_h worker, ucp_rsc_index_t tl_id,
                tl_id, wiface->iface, UCT_TL_RESOURCE_DESC_ARG(&resource->tl_rsc),
                worker);
 
-    /* Disable progress until we know better */
-    uct_iface_progress_disable(wiface->iface, UCT_PROGRESS_SEND |
-                                              UCT_PROGRESS_RECV);
-
     VALGRIND_MAKE_MEM_UNDEFINED(&wiface->attr, sizeof(wiface->attr));
     status = uct_iface_query(wiface->iface, &wiface->attr);
     if (status != UCS_OK) {
@@ -718,7 +726,7 @@ ucp_worker_add_iface(ucp_worker_h worker, ucp_rsc_index_t tl_id,
         {
             ucp_worker_iface_deactivate(wiface, 1);
         } else {
-            ucp_worker_iface_activate(wiface);
+            ucp_worker_iface_activate(wiface, 0);
         }
     }
 
@@ -951,6 +959,18 @@ unsigned ucp_worker_get_ep_config(ucp_worker_h worker,
 
 out:
     return config_idx;
+}
+
+ucs_status_t ucp_worker_listen(ucp_worker_h worker,
+                               const ucp_worker_listener_params_t *params,
+                               ucp_listener_h *listener_p)
+{
+    return UCS_ERR_NOT_IMPLEMENTED;
+}
+
+ucs_status_t ucp_listener_destroy(ucp_listener_h listener)
+{
+    return UCS_ERR_NOT_IMPLEMENTED;
 }
 
 ucs_status_t ucp_worker_create(ucp_context_h context,

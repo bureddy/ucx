@@ -43,9 +43,6 @@ typedef struct uct_rc_verbs_iface_config {
     uct_rc_iface_config_t              super;
     uct_rc_verbs_iface_common_config_t verbs_common;
     uct_rc_fc_config_t                 fc;
-#if IBV_EXP_HW_TM
-    unsigned                           tm_rndv_queue_len;
-#endif
 } uct_rc_verbs_iface_config_t;
 
 
@@ -60,9 +57,6 @@ typedef struct uct_rc_verbs_iface {
     struct {
         unsigned                tx_max_wr;
     } config;
-
-    /* Progress function (either regular or TM aware) */
-    ucs_callback_t              progress;
 } uct_rc_verbs_iface_t;
 
 
@@ -200,8 +194,6 @@ ucs_status_t uct_rc_verbs_ep_connect_to_ep(uct_ep_h tl_ep,
                                            const uct_ep_addr_t *ep_addr);
 
 ucs_status_t uct_rc_verbs_ep_get_address(uct_ep_h tl_ep, uct_ep_addr_t *addr);
-
-unsigned uct_rc_verbs_iface_progress(void *arg);
 
 ucs_status_t uct_rc_verbs_ep_fc_ctrl(uct_ep_t *tl_ep, unsigned op,
                                      uct_rc_fc_request_t *req);

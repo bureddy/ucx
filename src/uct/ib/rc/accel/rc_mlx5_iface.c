@@ -150,8 +150,7 @@ static UCS_CLASS_INIT_FUNC(uct_rc_mlx5_iface_t, uct_md_h md, uct_worker_h worker
                               params, &config->super, 0,
                               config->super.super.rx.queue_len,
                               sizeof(uct_rc_hdr_t),
-                              config->super.super.rx.queue_len,
-                              sizeof(uct_rc_fc_request_t));
+                              sizeof(uct_rc_fc_request_t), 1);
 
 
     self->tx.bb_max                  = ucs_min(config->tx_max_bb, UINT16_MAX);
@@ -175,6 +174,8 @@ static UCS_CLASS_INIT_FUNC(uct_rc_mlx5_iface_t, uct_md_h md, uct_worker_h worker
 
 static UCS_CLASS_CLEANUP_FUNC(uct_rc_mlx5_iface_t)
 {
+    uct_base_iface_progress_disable(&self->super.super.super.super,
+                                    UCT_PROGRESS_SEND | UCT_PROGRESS_RECV);
     uct_rc_mlx5_iface_common_cleanup(&self->mlx5_common);
 }
 
@@ -214,8 +215,8 @@ static uct_rc_iface_ops_t uct_rc_mlx5_iface_ops = {
     .ep_connect_to_ep         = uct_rc_ep_connect_to_ep,
     .iface_flush              = uct_rc_iface_flush,
     .iface_fence              = uct_base_iface_fence,
-    .iface_progress_enable    = ucs_empty_function,
-    .iface_progress_disable   = ucs_empty_function,
+    .iface_progress_enable    = uct_base_iface_progress_enable,
+    .iface_progress_disable   = uct_base_iface_progress_disable,
     .iface_progress           = (void*)uct_rc_mlx5_iface_progress,
     .iface_event_fd_get       = uct_ib_iface_event_fd_get,
     .iface_event_arm          = uct_rc_iface_event_arm,
