@@ -70,6 +70,8 @@ enum {
 
     UCP_AM_ID_STREAM_DATA       =  15, /* Eager STREAM packet */
 
+    UCP_AM_ID_RNDV_ATP          =  16, /* Ack-to-put complete after finishing a put operation */
+
     UCP_AM_ID_LAST
 };
 
