@@ -109,17 +109,6 @@ typedef struct ucp_ep_rma_config {
 } ucp_ep_rma_config_t;
 
 
-#define UCP_IS_DEFAULT_ADDR_DOMAIN(_addr_dn_h) (_addr_dn_h == &ucp_addr_dn_dummy_handle)
-
-typedef struct ucp_ep_addr_domain_config {
-    struct {
-        struct {
-            ssize_t        max_short;
-            size_t         zcopy_thresh[UCP_MAX_IOV];
-        } eager;
-    } tag;
-} ucp_ep_addr_domain_config_t;
-
 /*
  * Configuration for AM and tag offload protocols
  */
@@ -173,7 +162,7 @@ typedef struct ucp_ep_config {
 
         /* Configuration of the lane used for eager protocols
          * (can be AM or tag offload). */
-        ucp_ep_msg_config_t eager;
+        ucp_ep_msg_config_t eager[UCT_MD_MEM_TYPE_LAST];
 
         struct {
             /* Maximal total size of rndv_get_zcopy */
@@ -197,10 +186,6 @@ typedef struct ucp_ep_config {
          * (currently it's only AM based). */
         const ucp_proto_t   *proto;
     } stream;
-
-    /* Configuration of all domains */
-    ucp_ep_addr_domain_config_t domain[UCP_MAX_LANES];
-
 } ucp_ep_config_t;
 
 /**
@@ -269,5 +254,5 @@ size_t ucp_ep_config_get_zcopy_auto_thresh(size_t iovcnt,
 ucp_lane_index_t ucp_config_find_domain_lane(const ucp_ep_config_t *config,
                                                  const ucp_lane_index_t *lanes,
                                                  ucp_md_map_t dn_md_map);
-ucs_status_t ucp_ep_set_domain_lanes(ucp_ep_h ep, ucp_addr_dn_h addr_dn_h);
+ucs_status_t ucp_ep_set_domain_lanes(ucp_ep_h ep, ucp_mem_type_h mem_type_h);
 #endif

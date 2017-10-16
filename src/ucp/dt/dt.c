@@ -54,7 +54,7 @@ static UCS_F_ALWAYS_INLINE ucs_status_t ucp_dn_dt_unpack(ucp_request_t *req, voi
     ucp_context_h context = worker->context;
     ucp_ep_h ep = ucp_worker_ep_find(worker, worker->uuid);
     ucp_ep_config_t *config = ucp_ep_config(ep);
-    ucp_md_map_t dn_md_map = req->addr_dn_h->md_map;
+    ucp_md_map_t dn_md_map = req->mem_type.md_map;
     ucp_lane_index_t dn_lane;
     ucp_rsc_index_t rsc_index;
     uct_iface_attr_t *iface_attr;
@@ -135,7 +135,7 @@ ucs_status_t ucp_dt_unpack(ucp_request_t *req, ucp_datatype_t datatype, void *bu
 
     switch (datatype & UCP_DATATYPE_CLASS_MASK) {
     case UCP_DATATYPE_CONTIG:
-        if (ucs_likely(UCP_IS_DEFAULT_ADDR_DOMAIN(req->addr_dn_h))) {
+        if (ucs_likely(UCP_IS_DEFAULT_MEMORY_TYPE(req->mem_type.id))) {
             UCS_PROFILE_NAMED_CALL("memcpy_recv", memcpy, buffer + offset,
                                    recv_data, recv_length);
             return UCS_OK;

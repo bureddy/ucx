@@ -380,20 +380,18 @@ enum {
     UCT_MD_FLAG_SOCKADDR   = UCS_BIT(7),  /**< MD support for client-server
                                                connection establishment via
                                                sockaddr */
-    UCT_MD_FLAG_ADDR_DN    = UCS_BIT(8)   /**< MD supports memory addr domain
-                                               detection */
 };
+
 
 /*
  * @ingroup UCT_MD
- * @brief  Memory addr domains
+ * @brief  Memory types
  */
 typedef enum {
-    UCT_MD_ADDR_DOMAIN_CUDA = 0,  /**< NVIDIA CUDA domain */
-    UCT_MD_ADDR_DOMAIN_DEFAULT,   /**< Default system domain */
-    UCT_MD_ADDR_DOMAIN_LAST = UCT_MD_ADDR_DOMAIN_DEFAULT
-
-} uct_addr_domain_t;
+    UCT_MD_MEM_TYPE_DEFAULT = 0,   /**< Default system memory */
+    UCT_MD_MEM_TYPE_CUDA,          /**< NVIDIA CUDA memory */
+    UCT_MD_MEM_TYPE_LAST
+} uct_memory_type_t;
 
 
 /**
@@ -643,7 +641,7 @@ struct uct_md_attr {
         size_t               max_alloc; /**< Maximal allocation size */
         size_t               max_reg;   /**< Maximal registration size */
         uint64_t             flags;     /**< UCT_MD_FLAG_xx */
-        uct_addr_domain_t    addr_dn;   /**< Supported addr domain */
+        uct_memory_type_t    mem_type;  /**< Supported memory type */
     } cap;
 
     uct_linear_growth_t      reg_cost;  /**< Memory registration cost estimation

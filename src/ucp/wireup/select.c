@@ -39,7 +39,6 @@ typedef struct {
 
 
 static const char *ucp_wireup_md_flags[] = {
-    [ucs_ilog2(UCT_MD_FLAG_ADDR_DN)]             = "memory address domain",
     [ucs_ilog2(UCT_MD_FLAG_ALLOC)]               = "memory allocation",
     [ucs_ilog2(UCT_MD_FLAG_REG)]                 = "memory registration",
 };
@@ -586,7 +585,7 @@ ucp_lane_index_t ucp_config_find_domain_lane(const ucp_ep_config_t *config,
     return UCP_NULL_LANE;
 }
 
-ucs_status_t ucp_ep_set_domain_lanes(ucp_ep_h ep, ucp_addr_dn_h addr_dn_h)
+ucs_status_t ucp_ep_set_domain_lanes(ucp_ep_h ep, ucp_mem_type_h mem_type_h)
 {
     ucp_rsc_index_t rsc_index;
     uct_iface_attr_t *iface_attr;
@@ -594,7 +593,7 @@ ucs_status_t ucp_ep_set_domain_lanes(ucp_ep_h ep, ucp_addr_dn_h addr_dn_h)
     ucp_lane_index_t dn_lane;
     ucp_md_index_t md_index;
 
-    dn_md_map = addr_dn_h->md_map;
+    dn_md_map = mem_type_h->md_map;
 
         while(1) {
             dn_lane = ucp_config_find_domain_lane(ucp_ep_config(ep),
@@ -607,14 +606,14 @@ ucs_status_t ucp_ep_set_domain_lanes(ucp_ep_h ep, ucp_addr_dn_h addr_dn_h)
             iface_attr = &ep->worker->ifaces[rsc_index].attr;
             md_index = ucp_ep_config(ep)->key.lanes[dn_lane].dst_md_index;
             if (iface_attr->cap.flags & UCT_IFACE_FLAG_PUT_ZCOPY) {
-                addr_dn_h->eager_lane = dn_lane;
+                mem_type_h->eager_lane = dn_lane;
             }
             /*TODO: revisit cap flags for rndv lane*/
             /*if (iface_attr->cap.flags & UCT_IFACE_FLAG_GET_ZCOPY) {
-                *addr_dn_h->rndv_lane = dn_lane
-            }*/
+                *mem_type_h->rndv_lane = dn_lane
+             }*/
             dn_md_map |= ~UCS_BIT(md_index);
-            if (addr_dn_h->eager_lane != UCP_NULL_LANE || dn_md_map == 0) {
+            if (mem_type_h->eager_lane != UCP_NULL_LANE || dn_md_map == 0) {
                 break;
             }
         }
@@ -707,8 +706,8 @@ static ucs_status_t ucp_wireup_add_domain_lane(ucp_ep_h ep, const ucp_ep_params_
     ucp_wireup_criteria_t criteria;
 
     criteria.title              = "adress domain";
-    criteria.local_md_flags     = UCT_MD_FLAG_ADDR_DN;
-    criteria.remote_md_flags    = UCT_MD_FLAG_ADDR_DN;
+    criteria.local_md_flags     = 0;
+    criteria.remote_md_flags    = 0;
     criteria.remote_iface_flags = UCT_IFACE_FLAG_CONNECT_TO_IFACE;
     criteria.local_iface_flags  = criteria.remote_iface_flags;
     criteria.calc_score         = ucp_wireup_addr_domain_score_func;

@@ -65,14 +65,14 @@ typedef struct ucp_mem_desc {
 
 
 /**
- * Memory Address Domain descriptor.
- * Contains domain information of the memory address it belongs to.
+ * Memory type descriptor.
+ * Contains memory type information.
  */
-typedef struct ucp_addr_dn {
+typedef struct ucp_mem_type {
     ucp_md_map_t        md_map;       /* Which MDs have own ths addr Domain */
-    uct_addr_domain_t   id;           /* Address domain index */
-    ucp_lane_index_t    eager_lane;   
-} ucp_addr_dn_t;
+    uct_memory_type_t   id;           /* memory type */
+    ucp_lane_index_t    eager_lane;
+} ucp_mem_type_t;
 
 void ucp_rkey_resolve_inner(ucp_rkey_h rkey, ucp_ep_h ep);
 
@@ -82,15 +82,17 @@ void ucp_mpool_free(ucs_mpool_t *mp, void *chunk);
 
 void ucp_mpool_obj_init(ucs_mpool_t *mp, void *obj, void *chunk);
 
+#define UCP_IS_DEFAULT_MEMORY_TYPE(_id) ((_id ) == UCT_MD_MEM_TYPE_DEFAULT)
+
 /**
  * Detects the address domain on all MDs. skips on detect on sub-sequence MDs
  * if it sucessfully detected by MD.
 **/
+
 ucs_status_t ucp_addr_domain_detect_mds(ucp_context_h context, void *addr,
-                                        ucp_addr_dn_h *addr_dn_h);
+                                        ucp_mem_type_h mem_type_h);
 
-
-extern ucp_addr_dn_t ucp_addr_dn_dummy_handle;
+extern ucp_mem_type_t ucp_mem_type_dummy_handle;
 
 static UCS_F_ALWAYS_INLINE uct_mem_h
 ucp_memh2uct(ucp_mem_h memh, ucp_md_index_t md_idx)

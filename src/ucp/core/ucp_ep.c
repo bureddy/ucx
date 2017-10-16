@@ -885,11 +885,11 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
 {
     ucp_context_h context = worker->context;
     ucp_ep_rma_config_t *rma_config;
-    ucp_ep_addr_domain_config_t *domain_config;
     uct_iface_attr_t *iface_attr;
     uct_md_attr_t *md_attr;
     ucp_rsc_index_t rsc_index;
     ucp_lane_index_t lane;
+    ucp_md_index_t md_index;
     size_t it;
     size_t max_rndv_thresh;
     size_t max_am_rndv_thresh;
@@ -898,10 +898,10 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
     for (it = 0; it < UCP_MAX_IOV; ++it) {
         config->am.zcopy_thresh[it]              = SIZE_MAX;
         config->am.sync_zcopy_thresh[it]         = SIZE_MAX;
-        config->tag.eager.zcopy_thresh[it]       = SIZE_MAX;
-        config->tag.eager.sync_zcopy_thresh[it]  = SIZE_MAX;
+        config->tag.eager[UCT_MD_MEM_TYPE_DEFAULT].zcopy_thresh[it] = SIZE_MAX;
+        config->tag.eager[UCT_MD_MEM_TYPE_DEFAULT].sync_zcopy_thresh[it] = SIZE_MAX;
     }
-    config->tag.eager.zcopy_auto_thresh = 0;
+    config->tag.eager[UCT_MD_MEM_TYPE_DEFAULT].zcopy_auto_thresh = 0;
     config->am.zcopy_auto_thresh        = 0;
     config->p2p_lanes                   = 0;
     config->domain_lanes                = 0;
@@ -932,7 +932,7 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
         rsc_index = config->key.lanes[lane].rsc_index;
         if (rsc_index != UCP_NULL_RESOURCE) {
             iface_attr = &worker->ifaces[rsc_index].attr;
-            ucp_ep_config_init_attrs(worker, rsc_index, &config->tag.eager,
+            ucp_ep_config_init_attrs(worker, rsc_index, &(config->tag.eager[UCT_MD_MEM_TYPE_DEFAULT]),
                                      iface_attr->cap.tag.eager.max_short,
                                      iface_attr->cap.tag.eager.max_bcopy,
                                      iface_attr->cap.tag.eager.max_zcopy,
@@ -983,13 +983,17 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
                 ucp_ep_config_set_rndv_thresh(worker, config, config->key.rndv_lane,
                                               UCT_IFACE_FLAG_GET_ZCOPY,
                                               max_rndv_thresh);
-                config->tag.eager      = config->am;
+                config->tag.eager[UCT_MD_MEM_TYPE_DEFAULT] = config->am;
                 config->tag.lane       = lane;
             }
         } else {
             /* Stub endpoint */
             config->am.max_bcopy = UCP_MIN_BCOPY;
         }
+    }
+
+    for (it = 0; it < UCT_MD_MEM_TYPE_LAST; it++) {
+        config->tag.eager[it] = config->tag.eager[UCT_MD_MEM_TYPE_DEFAULT];
     }
 
     /* Configuration for memory domains */
@@ -999,13 +1003,13 @@ void ucp_ep_config_init(ucp_worker_h worker, ucp_ep_config_t *config)
         }
         config->domain_lanes |= UCS_BIT(lane);
 
-        domain_config = &config->domain[lane];
         rsc_index  = config->key.lanes[lane].rsc_index;
         iface_attr = &worker->ifaces[rsc_index].attr;
+        md_index   = config->key.lanes[lane].dst_md_index;
 
-        domain_config->tag.eager.max_short = iface_attr->cap.am.max_short;
+        config->tag.eager[md_index].max_short = iface_attr->cap.am.max_short;
         //TODO: zcopy thrshold should be based on the ep AM lane capability with domain addr(i.e  can UCT  do zcopy from domain) 
-        memset(domain_config->tag.eager.zcopy_thresh, 0, UCP_MAX_IOV * sizeof(size_t));
+        memset(config->tag.eager[md_index].zcopy_thresh, 0, UCP_MAX_IOV * sizeof(size_t));
 
     }
         
@@ -1231,7 +1235,7 @@ static void ucp_ep_config_print(FILE *stream, ucp_worker_h worker,
 
     if (context->config.features & UCP_FEATURE_TAG) {
          tag_config = (ucp_ep_is_tag_offload_enabled((ucp_ep_config_t *)config)) ?
-                       &config->tag.eager : &config->am;
+                      &(config->tag.eager[UCT_MD_MEM_TYPE_DEFAULT]) : &config->am;
          ucp_ep_config_print_tag_proto(stream, "tag_send",
                                        tag_config->max_short,
                                        tag_config->zcopy_thresh[0],
