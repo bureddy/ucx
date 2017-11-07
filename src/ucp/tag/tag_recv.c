@@ -85,7 +85,8 @@ ucp_tag_search_unexp(ucp_worker_h worker, void *buffer, size_t buffer_size,
                 UCS_PROFILE_REQUEST_EVENT(req, "eager_match", 0);
                 status = ucp_eager_unexp_match(worker, rdesc, recv_tag, flags,
                                                buffer, buffer_size, datatype,
-                                               &req->recv.state, info);
+                                               &req->recv.state, req, info);
+                ucs_trace_req("release receive descriptor %p", rdesc);
                 if (status != UCS_INPROGRESS) {
                     goto out_release_desc;
                 }
@@ -128,6 +129,7 @@ ucp_tag_recv_request_init(ucp_request_t *req, ucp_worker_h worker, void* buffer,
     req->recv.reg_rsc   = UCP_NULL_RESOURCE;
 
     ucp_request_recv_state_init(req, buffer, datatype, count);
+    ucp_memory_type_detect_mds(worker->context, buffer, count, &req->mem_type);
 
     if (ucs_log_enabled(UCS_LOG_LEVEL_TRACE_REQ)) {
         req->recv.tag.info.sender_tag = 0;

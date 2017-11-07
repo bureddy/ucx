@@ -112,6 +112,15 @@ typedef struct ucp_ep_rma_config {
 } ucp_ep_rma_config_t;
 
 
+typedef struct ucp_ep_addr_domain_config {
+    struct {
+        struct {
+            ssize_t        max_short;
+            size_t         zcopy_thresh[UCP_MAX_IOV];
+        } eager;
+    } tag;
+} ucp_ep_addr_domain_config_t;
+
 /*
  * Configuration for AM and tag offload protocols
  */
@@ -187,8 +196,11 @@ typedef struct ucp_ep_config {
          * (currently it's only AM based). */
         const ucp_proto_t   *proto;
     } stream;
-} ucp_ep_config_t;
 
+    /* Configuration of all domains */
+    ucp_ep_addr_domain_config_t domain[UCP_MAX_LANES];
+
+} ucp_ep_config_t;
 
 /**
  * UCP_FEATURE_STREAM specific extention of the remote protocol layer endpoint

@@ -133,10 +133,12 @@ typedef struct ucp_worker_iface {
     ucp_worker_h                  worker;        /* The parent worker */
     ucs_queue_elem_t              queue;         /* Element in tm.offload_ifaces */
     ucs_list_link_t               arm_list;      /* Element in arm_ifaces list */
+    ucs_list_link_t               mem_type_list; /* Element in mem_type_ifaces list */  
     ucp_rsc_index_t               rsc_index;     /* Resource index */
     int                           event_fd;      /* Event FD, or -1 if undefined */
     unsigned                      activate_count;/* How times this iface has been activated */
     int                           on_arm_list;   /* Is the interface on arm_list */
+    int                           on_mem_type_list;/* Is the interface on mem_type_list */
     int                           check_events_id;/* Callback id for check_events */
     int                           proxy_am_count;/* Counts active messages on proxy handler */
 } ucp_worker_iface_t;
@@ -164,6 +166,7 @@ typedef struct ucp_worker {
     int                           eventfd;       /* Event fd to support signal() calls */
     unsigned                      uct_events;    /* UCT arm events */
     ucs_list_link_t               arm_ifaces;    /* List of interfaces to arm */
+    ucs_list_link_t               mem_type_ifaces;/* List of interfaces to memory types */
 
     void                          *user_data;    /* User-defined data */
     ucs_list_link_t               stream_eps;    /* List of EPs with received stream data */

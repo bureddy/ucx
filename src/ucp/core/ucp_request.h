@@ -98,6 +98,7 @@ typedef struct ucp_rndv_get_rkey {
 struct ucp_request {
     ucs_status_t                  status;  /* Operation status */
     uint16_t                      flags;   /* Request flags */
+    uct_memory_type_t             mem_type;
 
     union {
         struct {

@@ -15,6 +15,9 @@
 #include <ucp/core/ucp_types.h>
 #include <uct/api/uct.h>
 #include <ucp/api/ucp.h>
+#include <ucs/debug/profile.h>
+#include <string.h>
+#include <ucp/core/ucp_types.h>
 
 
 /**
@@ -63,5 +66,9 @@ ucp_dt_have_rndv_lanes(ucp_dt_state_t *state)
     return !ucp_dt_is_empty_rndv_lane(state, 0);
 }
 
-#endif /* UCP_DT_H_ */
 
+ucs_status_t ucp_dt_unpack(ucp_request_t *req, ucp_datatype_t datatype,
+                           void *buffer, size_t buffer_size, ucp_dt_state_t *state,
+                           const void *recv_data, size_t recv_length, int last);
+
+#endif /* UCP_DT_H_ */

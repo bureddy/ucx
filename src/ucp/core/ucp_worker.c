@@ -754,6 +754,10 @@ static void ucp_worker_close_ifaces(ucp_worker_h worker)
             ucs_list_del(&wiface->arm_list);
         }
 
+        if (wiface->on_mem_type_list) {
+            ucs_list_del(&wiface->mem_type_list);
+        }
+
         if (wiface->attr.cap.flags & UCP_WORKER_UCT_ALL_EVENT_CAP_FLAGS) {
             status = ucs_async_remove_handler(wiface->event_fd, 1);
             if (status != UCS_OK) {
@@ -876,6 +880,11 @@ ucp_worker_add_iface(ucp_worker_h worker, ucp_rsc_index_t tl_id,
         ucs_queue_push(&worker->tm.offload.ifaces, &wiface->queue);
         ucp_worker_tag_offload_enable(worker);
     }
+
+    if (context->tl_mds[resource->md_index].attr.cap.mem_type != UCT_MD_MEM_TYPE_HOST) {
+        wiface->on_mem_type_list = 0;
+        ucs_list_add_tail(&worker->mem_type_ifaces, &wiface->mem_type_list);
+    }    
 
     return UCS_OK;
 
@@ -1176,6 +1185,7 @@ ucs_status_t ucp_worker_create(ucp_context_h context,
     worker->ep_config_count   = 0;
     ucs_list_head_init(&worker->arm_ifaces);
     ucs_list_head_init(&worker->stream_eps);
+    ucs_list_head_init(&worker->mem_type_ifaces);
 
     if (params->field_mask & UCP_WORKER_PARAM_FIELD_USER_DATA) {
         worker->user_data = params->user_data;

@@ -158,7 +158,7 @@ ucp_stream_rdata_unpack(const ucp_recv_desc_t *rdesc, ucp_request_t *dst_req)
                                      rdesc->length);
     ucs_status_t status;
 
-    status = ucp_dt_unpack(dst_req->recv.datatype, dst_req->recv.buffer,
+    status = ucp_dt_unpack(dst_req, dst_req->recv.datatype, dst_req->recv.buffer,
                            dst_req->recv.length, &dst_req->recv.state,
                            ucp_stream_rdesc_payload(rdesc), valid_len,
                            UCP_RECV_DESC_FLAG_LAST);
