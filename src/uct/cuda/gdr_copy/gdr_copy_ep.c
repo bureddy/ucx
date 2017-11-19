@@ -32,3 +32,38 @@ UCS_CLASS_DEFINE_NEW_FUNC(uct_gdr_copy_ep_t, uct_ep_t, uct_iface_t*,
                           const uct_device_addr_t *, const uct_iface_addr_t *);
 UCS_CLASS_DEFINE_DELETE_FUNC(uct_gdr_copy_ep_t, uct_ep_t);
 
+#define uct_gdr_copy_trace_data(_remote_addr, _rkey, _fmt, ...) \
+     ucs_trace_data(_fmt " to %"PRIx64"(%+ld)", ## __VA_ARGS__, (_remote_addr), \
+                    (_rkey))
+
+ucs_status_t uct_gdr_copy_ep_put_zcopy(uct_ep_h tl_ep, const uct_iov_t *iov, size_t iovcnt,
+                                       uint64_t remote_addr, uct_rkey_t rkey,
+                                       uct_completion_t *comp)
+{
+    uct_gdr_copy_iface_t *iface = ucs_derived_of(tl_ep->iface, uct_gdr_copy_iface_t);
+    uct_gdr_copy_md_t *md = (uct_gdr_copy_md_t *)iface->super.md;
+    uct_gdr_copy_mem_t *mem_hndl = (uct_gdr_copy_mem_t *) rkey;
+    gdr_info_t gdr_info;
+    size_t bar_off;
+
+    if (!uct_iov_total_length(iov, iovcnt)) {
+        return UCS_OK;
+    }
+
+    assert(iovcnt == 1);
+    if (gdr_get_info(md->gdrcpy_ctx, mem_hndl->mh, &gdr_info) != 0) {
+        ucs_error("gdr_get_info failed. ");
+        return UCS_ERR_IO_ERROR;
+    }
+    bar_off = remote_addr - gdr_info.va;
+    if (gdr_copy_to_bar((mem_hndl->bar_ptr + bar_off), iov[0].buffer, iov[0].length) != 0) {
+        ucs_error("gdr_copy_to_bar Failed");
+        return UCS_ERR_IO_ERROR;
+    }
+
+    UCT_TL_EP_STAT_OP(ucs_derived_of(tl_ep, uct_base_ep_t), PUT, ZCOPY,
+                      uct_iov_total_length(iov, iovcnt));
+    uct_gdr_copy_trace_data(remote_addr, rkey, "PUT_ZCOPY [length %zu]",
+                             uct_iov_total_length(iov, iovcnt));
+    return UCS_OK;
+}
