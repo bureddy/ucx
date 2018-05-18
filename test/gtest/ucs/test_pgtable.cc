@@ -154,6 +154,36 @@ UCS_TEST_F(test_pgtable, basic) {
     purge(); /* region goes out of scope so we must remove it */
 }
 
+UCS_TEST_F(test_pgtable, large_range_search) {
+    ucs_pgt_region_t region;
+    search_result_t result;
+
+    region.start = 0x2d4dee00;
+    region.end = 0x2d4e9700;
+    insert(&region);
+
+    dump();
+
+    EXPECT_EQ(&region,  lookup(0x2d4def00));
+    EXPECT_EQ(&region,  lookup(0x2d4e9600));
+    EXPECT_TRUE(NULL == lookup(0x2d4e9900));
+    EXPECT_TRUE(NULL == lookup(0x2d3dee00));
+    EXPECT_EQ(1u,       num_regions());
+
+    result = search((uintptr_t)0x2d4dee00, (uintptr_t)0x2d4e9700);
+    EXPECT_EQ(1u, result.size());
+    result = search((uintptr_t)0x2d000000, (uintptr_t)0x2dfffff0);
+    EXPECT_EQ(1u, result.size());
+    result = search((uintptr_t)0x2d000000, (uintptr_t)0x2dfffff1);
+    EXPECT_EQ(1u, result.size());
+    result = search((uintptr_t)0x29670000, (uintptr_t)0x2e300000);
+    EXPECT_EQ(1u, result.size());
+
+    remove(&region);
+
+    EXPECT_EQ(0,       num_regions());
+}
+
 UCS_TEST_F(test_pgtable, lookup_adjacent) {
     ucs_pgt_region_t region1 = {0xc500000, 0xc500400};
     ucs_pgt_region_t region2 = {0xc500400, 0xc500800};
