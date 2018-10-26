@@ -148,7 +148,7 @@ ucs_status_t ucp_tag_send_start_rndv(ucp_request_t *sreq)
             ucp_rndv_is_get_zcopy(sreq, ep->worker->context->config.ext.rndv_mode)) {
             /* register a contiguous buffer for rma_get */
             md_map = ucp_ep_config(ep)->key.rma_bw_md_map;
-            status = ucp_request_send_buffer_reg(sreq, md_map);
+            status = ucp_request_send_buffer_reg(sreq, md_map, 0);
             if (status != UCS_OK) {
                 return status;
             }
@@ -353,7 +353,7 @@ UCS_PROFILE_FUNC(ucs_status_t, ucp_rndv_progress_rma_get_zcopy, (self),
     }
 
     if (!rndv_req->send.mdesc) {
-        status = ucp_send_request_add_reg_lane(rndv_req, rndv_req->send.lane);
+        status = ucp_send_request_add_reg_lane(rndv_req, rndv_req->send.lane, 1);
         ucs_assert_always(status == UCS_OK);
     }
 
@@ -558,7 +558,7 @@ UCS_PROFILE_FUNC_VOID(ucp_rndv_matched, (worker, rreq, rndv_rts_hdr),
         } else if (rndv_mode != UCP_RNDV_MODE_GET_ZCOPY) {
             /* put protocol is allowed - register receive buffer memory for rma */
             ucp_request_recv_buffer_reg(rreq, ucp_ep_config(ep)->key.rma_bw_md_map,
-                                        ucs_min(rreq->recv.length, rndv_rts_hdr->size));
+                                        ucs_min(rreq->recv.length, rndv_rts_hdr->size), 0);
         }
     }
 
@@ -699,7 +699,7 @@ UCS_PROFILE_FUNC(ucs_status_t, ucp_rndv_progress_rma_put_zcopy, (self),
     ucp_dt_state_t state;
 
     if (!sreq->send.mdesc) {
-        status = ucp_request_send_buffer_reg_lane(sreq, sreq->send.lane);
+        status = ucp_request_send_buffer_reg_lane(sreq, sreq->send.lane, 1);
         ucs_assert_always(status == UCS_OK);
     }
 
@@ -942,7 +942,7 @@ UCS_PROFILE_FUNC(ucs_status_t, ucp_rndv_rtr_handler,
         (sreq->send.length >=
          ucp_ep_config(ep)->am.mem_type_zcopy_thresh[sreq->send.mem_type]))
     {
-        status = ucp_request_send_buffer_reg_lane(sreq, ucp_ep_get_am_lane(ep));
+        status = ucp_request_send_buffer_reg_lane(sreq, ucp_ep_get_am_lane(ep), 1);
         ucs_assert_always(status == UCS_OK);
 
         ucp_request_send_state_reset(sreq, ucp_rndv_am_zcopy_completion,

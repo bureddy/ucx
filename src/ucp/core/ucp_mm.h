@@ -109,6 +109,8 @@ void ucp_frag_mpool_free(ucs_mpool_t *mp, void *chunk);
  * @param [inout] uct_memh Array of memory handles to update.
  * @param [inout] md_map_p Current map of registered MDs, updated by the function
  *                         to the new map o
+ * @param [in] for_local   Registation is for local memory handle for
+ *                         zcopy-copy operation
  *
  * In case alloc_md != NULL, alloc_md_memh will hold the memory key obtained from
  * allocation. It will be put in the array of keys in the proper index.
@@ -117,7 +119,7 @@ ucs_status_t ucp_mem_rereg_mds(ucp_context_h context, ucp_md_map_t reg_md_map,
                                void *address, size_t length, unsigned uct_flags,
                                uct_md_h alloc_md, uct_memory_type_t mem_type,
                                uct_mem_h *alloc_md_memh_p, uct_mem_h *uct_memh,
-                               ucp_md_map_t *md_map_p);
+                               ucp_md_map_t *md_map_p, int for_local);
 
 size_t ucp_rkey_packed_size(ucp_context_h context, ucp_md_map_t md_map);
 

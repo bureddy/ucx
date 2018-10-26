@@ -338,39 +338,42 @@ ucp_request_send_state_advance(ucp_request_t *req,
 }
 
 static UCS_F_ALWAYS_INLINE ucs_status_t
-ucp_request_send_buffer_reg(ucp_request_t *req, ucp_md_map_t md_map)
+ucp_request_send_buffer_reg(ucp_request_t *req, ucp_md_map_t md_map,
+                            int for_local)
 {
     return ucp_request_memory_reg(req->send.ep->worker->context, md_map,
                                   (void*)req->send.buffer, req->send.length,
                                   req->send.datatype, &req->send.state.dt,
-                                  req->send.mem_type, req, 0);
+                                  req->send.mem_type, req, 0, for_local);
 }
 
 static UCS_F_ALWAYS_INLINE ucs_status_t
-ucp_request_send_buffer_reg_lane(ucp_request_t *req, ucp_lane_index_t lane)
+ucp_request_send_buffer_reg_lane(ucp_request_t *req, ucp_lane_index_t lane,
+                                 int for_local)
 {
     ucp_md_map_t md_map = UCS_BIT(ucp_ep_md_index(req->send.ep, lane));
-    return ucp_request_send_buffer_reg(req, md_map);
+    return ucp_request_send_buffer_reg(req, md_map, for_local);
 }
 
 static UCS_F_ALWAYS_INLINE ucs_status_t
-ucp_send_request_add_reg_lane(ucp_request_t *req, ucp_lane_index_t lane)
+ucp_send_request_add_reg_lane(ucp_request_t *req, ucp_lane_index_t lane,
+                              int for_local)
 {
     /* add new lane to registration map */
     ucp_md_map_t md_map = UCS_BIT(ucp_ep_md_index(req->send.ep, lane)) |
                           req->send.state.dt.dt.contig.md_map;
     ucs_assert(ucs_count_one_bits(md_map) <= UCP_MAX_OP_MDS);
-    return ucp_request_send_buffer_reg(req, md_map);
+    return ucp_request_send_buffer_reg(req, md_map, for_local);
 }
 
 static UCS_F_ALWAYS_INLINE ucs_status_t
 ucp_request_recv_buffer_reg(ucp_request_t *req, ucp_md_map_t md_map,
-                            size_t length)
+                            size_t length, int for_local)
 {
     return ucp_request_memory_reg(req->recv.worker->context, md_map,
                                   req->recv.buffer, length,
                                   req->recv.datatype, &req->recv.state,
-                                  req->recv.mem_type, req, 0);
+                                  req->recv.mem_type, req, 0, for_local);
 }
 
 static UCS_F_ALWAYS_INLINE void ucp_request_send_buffer_dereg(ucp_request_t *req)

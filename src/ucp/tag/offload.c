@@ -269,7 +269,7 @@ ucp_tag_offload_do_post(ucp_request_t *req)
         status = ucp_request_memory_reg(context, UCS_BIT(mdi), req->recv.buffer,
                                         req->recv.length, req->recv.datatype,
                                         &req->recv.state, req->recv.mem_type,
-                                        req, UCT_MD_MEM_FLAG_HIDE_ERRORS);
+                                        req, UCT_MD_MEM_FLAG_HIDE_ERRORS, 0);
         if (status != UCS_OK) {
             return status;
         }
@@ -608,7 +608,7 @@ ucs_status_t ucp_tag_offload_start_rndv(ucp_request_t *sreq)
     ucs_assert(sreq->send.lane == ucp_ep_get_tag_lane(ep));
 
     if (UCP_DT_IS_CONTIG(sreq->send.datatype)) {
-        status = ucp_request_send_buffer_reg_lane(sreq, sreq->send.lane);
+        status = ucp_request_send_buffer_reg_lane(sreq, sreq->send.lane, 0);
         if (status != UCS_OK) {
             return status;
         }
