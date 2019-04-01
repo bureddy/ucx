@@ -310,6 +310,43 @@ static ucm_reloc_patch_t ucm_reloc_dlopen_patch = {
     .value  = ucm_dlopen
 };
 
+typedef struct ucm_symbol_dl_iter_ctx {
+    Dl_info dlinfo;
+    const char *symbol;
+    void *fptr;
+} ucm_symbol_dl_iter_ctx_t;
+
+static int ucm_symbol_find_phdr_iterator(struct dl_phdr_info *info, size_t size, void *data)
+{
+    ucm_symbol_dl_iter_ctx_t *ctx = data;
+    void *handle;
+
+    handle = dlopen(info->dlpi_name, RTLD_LAZY);
+    ctx->fptr = dlsym(handle, ctx->symbol);
+    if (ctx->fptr) {
+        return -1;
+    }
+
+    dlclose(handle);
+    return 0;
+}
+
+void *ucm_find_symbol(const char *symbol)
+{
+    ucm_symbol_dl_iter_ctx_t ctx;
+    int success;
+
+    success = dladdr(getpid, &ctx.dlinfo);
+    if (!success) {
+        return NULL;
+    }
+    ctx.symbol = symbol;
+    ctx.fptr   = NULL;
+
+    (void)dl_iterate_phdr(ucm_symbol_find_phdr_iterator, &ctx);
+    return ctx.fptr;
+}
+
 void* ucm_reloc_get_orig(const char *symbol, void *replacement)
 {
     const char *error;
@@ -323,6 +360,8 @@ void* ucm_reloc_get_orig(const char *symbol, void *replacement)
             error = dlerror();
             ucm_fatal("could not find address of original %s(): %s", symbol,
                       error ? error : "Unknown error");
+        } else if(func_ptr == NULL) {
+            func_ptr = ucm_find_symbol(symbol);
         }
     }
 
