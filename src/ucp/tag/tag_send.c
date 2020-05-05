@@ -58,7 +58,7 @@ ucp_tag_send_req(ucp_request_t *req, size_t dt_count,
     size_t rndv_rma_thresh;
     size_t rndv_am_thresh;
 
-    if (param->op_attr_mask & UCP_OP_ATTR_FLAG_FAST_CMPL) {
+    if (param->op_attr_mask & UCP_OP_ATTR_FLAG_FAST_CMPL && UCP_MEM_IS_ACCESSIBLE_FROM_CPU(req->send.mem_type)) {
         rndv_rma_thresh = ucp_ep_config(req->send.ep)->tag.rndv_send_nbr.rma_thresh;
         rndv_am_thresh  = ucp_ep_config(req->send.ep)->tag.rndv_send_nbr.am_thresh;
     } else {
@@ -66,12 +66,8 @@ ucp_tag_send_req(ucp_request_t *req, size_t dt_count,
         rndv_am_thresh  = ucp_ep_config(req->send.ep)->tag.rndv.am_thresh;
     }
 
-    if (ucs_likely(UCP_MEM_IS_ACCESSIBLE_FROM_CPU(req->send.mem_type))) {
-        rndv_thresh = ucp_tag_get_rndv_threshold(req, dt_count, msg_config->max_iov,
-                                                 rndv_rma_thresh, rndv_am_thresh);
-    } else {
-        rndv_thresh = ucp_ep_config(req->send.ep)->tag.rndv.memtype_rma_thresh;
-    }
+    rndv_thresh = ucp_tag_get_rndv_threshold(req, dt_count, msg_config->max_iov,
+                                             rndv_rma_thresh, rndv_am_thresh);
 
     if (!(param->op_attr_mask & UCP_OP_ATTR_FLAG_FAST_CMPL) ||
         ucs_unlikely(!UCP_MEM_IS_ACCESSIBLE_FROM_CPU(req->send.mem_type))) {

@@ -121,7 +121,7 @@ static ucs_config_field_t ucp_config_table[] = {
    "Threshold for switching from eager to rendezvous protocol",
    ucs_offsetof(ucp_config_t, ctx.rndv_thresh), UCS_CONFIG_TYPE_MEMUNITS},
 
-  {"MEMTYPE_RNDV_THRESH", "8k",
+  {"MEMTYPE_RNDV_THRESH", "auto",
    "Threshold for switching from eager to rendezvous protocol for non-HOST memory",
    ucs_offsetof(ucp_config_t, ctx.memtype_rndv_thresh), UCS_CONFIG_TYPE_MEMUNITS},
 

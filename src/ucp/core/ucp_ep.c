@@ -1071,6 +1071,9 @@ static size_t ucp_ep_config_calc_rndv_thresh(ucp_worker_t *worker,
     ucp_ep_config_calc_params(worker, config, eager_lanes, &eager_zcopy);
     ucp_ep_config_calc_params(worker, config, rndv_lanes, &rndv);
 
+    ucs_warn("EAGER: reg_growth:%lf reg_over:%lf overhead:%lf latency:%lf bw:%ld", eager_zcopy.reg_growth ,eager_zcopy.reg_overhead ,eager_zcopy.overhead, eager_zcopy.latency ,eager_zcopy.bw); 
+    ucs_warn("RNDV: reg_growth:%lf reg_over:%lf overhead:%lf latency:%lf bw:%ld", rndv.reg_growth ,rndv.reg_overhead ,rndv.overhead, rndv.latency ,rndv.bw); 
+
     if ((eager_zcopy.bw == 0) || (rndv.bw == 0)) {
         goto fallback;
     }
@@ -1092,6 +1095,7 @@ static size_t ucp_ep_config_calc_rndv_thresh(ucp_worker_t *worker,
                   (rndv.reg_growth * (1 + recv_reg_cost) + 1.0 / rndv.bw);
 
     if ((numerator > 0) && (denumerator > 0)) {
+        ucs_warn("rts_latency:%lf numerator:%lf denumerator:%lf num/den:%lf max_bcopy:%ld", rts_latency, numerator, denumerator, numerator / denumerator, eager_iface_attr->cap.am.max_bcopy);
         return ucs_max(numerator / denumerator, eager_iface_attr->cap.am.max_bcopy);
     }
 
@@ -1188,7 +1192,7 @@ static void ucp_ep_config_set_am_rndv_thresh(ucp_worker_h worker,
                                                          config->key.am_bw_lanes,
                                                          0);
         rndv_nbr_thresh = context->config.ext.rndv_send_nbr_thresh;
-        ucs_trace("active message rendezvous threshold is %zu", rndv_thresh);
+        ucs_warn("active message rendezvous threshold is %zu", rndv_thresh);
     } else {
         rndv_thresh     = context->config.ext.rndv_thresh;
         rndv_nbr_thresh = context->config.ext.rndv_thresh;
@@ -1261,7 +1265,12 @@ static void ucp_ep_config_set_rndv_thresh(ucp_worker_t *worker,
                                                 min_thresh,
                                                 max_rndv_thresh);
 
-    config->tag.rndv.memtype_rma_thresh  = context->config.ext.memtype_rndv_thresh;
+    if (context->config.ext.memtype_rndv_thresh == UCS_MEMUNITS_AUTO) {
+        config->tag.rndv.memtype_rma_thresh  = 8192;
+    } else {
+        config->tag.rndv.memtype_rma_thresh  = context->config.ext.memtype_rndv_thresh;
+    }
+
     config->tag.rndv_send_nbr.rma_thresh = ucp_ep_thresh(rndv_nbr_thresh,
                                                          min_thresh,
                                                          max_rndv_thresh);
