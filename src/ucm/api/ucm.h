@@ -16,6 +16,7 @@ BEGIN_C_DECLS
 #include <ucs/config/types.h>
 #include <ucs/memory/memory_type.h>
 #include <ucs/type/status.h>
+#include <ucs/sys/topo.h>
 
 #include <sys/types.h>
 #include <stddef.h>
@@ -462,6 +463,7 @@ int ucm_madvise(void *addr, size_t length, int advice);
  */
 void *ucm_dlopen(const char *filename, int flag);
 
+int  ucm_get_mem_type_current_device_info(ucs_memory_type_t memtype, int *device_id, ucs_sys_bus_id_t *bus_id);
 
 END_C_DECLS
 
