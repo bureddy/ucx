@@ -151,7 +151,7 @@ UCS_PROFILE_FUNC_VOID(ucp_tag_offload_rndv_cb,
 
     ucs_assert(header_length >= sizeof(ucp_rndv_rts_hdr_t));
 
-    if (UCP_MEM_IS_ACCESSIBLE_FROM_CPU(req->recv.mem_type)) {
+    if (UCP_MEM_IS_HOST(req->recv.mem_type)) {
         ucp_tag_rndv_matched(req->recv.worker, req, header);
     } else {
         /* SW rendezvous request is stored in the user buffer (temporarily)
@@ -274,7 +274,7 @@ ucp_tag_offload_do_post(ucp_request_t *req)
     /* Do not use bounce buffer for receives to GPU memory to avoid
      * cost of h2d transfers (i.e. cuda_copy from staging to dest memory). */
     if ((length >= worker->tm.offload.zcopy_thresh) ||
-        !UCP_MEM_IS_ACCESSIBLE_FROM_CPU(req->recv.mem_type)) {
+        !UCP_MEM_IS_HOST(req->recv.mem_type)) {
         if (length > wiface->attr.cap.tag.recv.max_zcopy) {
             /* Post maximum allowed length. If sender sends smaller message
              * (which is allowed per MPI standard), max recv should fit it.
