@@ -790,6 +790,7 @@ ucp_rndv_init_mem_type_frag_req(ucp_worker_h worker, ucp_request_t *freq, int rn
     mem_type_mdesc      = (ucp_mem_type_mem_desc_t *)
                           ((ucp_mem_desc_t *)mdesc + 1);
     freq->send.buffer   = mem_type_mdesc->address;
+    freq->flags         = 0;
     freq->send.length   = length;
     freq->send.datatype = ucp_dt_make_contig(1);
     freq->send.mem_type = mem_type;
