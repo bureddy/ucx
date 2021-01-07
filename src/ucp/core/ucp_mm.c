@@ -173,7 +173,8 @@ static int ucp_is_md_selected_by_config(ucp_context_h context,
 }
 
 static ucs_status_t ucp_mem_alloc(ucp_context_h context, size_t length,
-                                  unsigned uct_flags, const char *name, ucp_mem_h memh)
+                                  ucs_memory_type_t mem_type, unsigned uct_flags,
+                                  const char *name, ucp_mem_h memh)
 {
     uct_allocated_memory_t mem;
     uct_alloc_method_t method;
@@ -212,7 +213,7 @@ static ucs_status_t ucp_mem_alloc(ucp_context_h context, size_t length,
                                  UCT_MEM_ALLOC_PARAM_FIELD_NAME;
         params.flags           = uct_flags;
         params.name            = name;
-        params.mem_type        = UCS_MEMORY_TYPE_HOST;
+        params.mem_type        = mem_type;
         params.address         = memh->address;
         params.mds.mds         = mds;
         params.mds.count       = num_mds;
@@ -296,14 +297,16 @@ static ucs_status_t ucp_mem_map_common(ucp_context_h context, void *address,
     memh->length  = length;
 
     if (is_allocate) {
-        if (memory_type != UCS_MEMORY_TYPE_HOST) {
-            ucs_error("memory allocation not supported with non-host memory");
+        if (memory_type == UCS_MEMORY_TYPE_UNKNOWN) {
+            ucs_error("memory allocation not supported with unknown memory type");
             status = UCS_ERR_INVALID_PARAM;
             goto err_free_memh;
         }
 
-        ucs_debug("allocating %s at %p length %zu", alloc_name, address, length);
-        status = ucp_mem_alloc(context, length, uct_flags, alloc_name, memh);
+        ucs_debug("allocating %s at %p length %zu mem_type:%s",
+                  alloc_name, address, length, ucs_memory_type_names[memory_type]);
+        status = ucp_mem_alloc(context, length, memory_type,
+                               uct_flags, alloc_name, memh);
         if (status != UCS_OK) {
             goto err_free_memh;
         }

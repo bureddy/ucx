@@ -66,6 +66,8 @@ typedef struct ucp_context_config {
     unsigned                               mem_type_frag_elems_per_chunk;
     /** RNDV pipline send threshold */
     size_t                                 rndv_pipeline_send_thresh;
+    /** RNDV pipline recv threshold */
+    size_t                                 rndv_pipeline_thresh;
     /** Threshold for using tag matching offload capabilities. Smaller buffers
      *  will not be posted to the transport. */
     size_t                                 tm_thresh;

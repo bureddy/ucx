@@ -26,7 +26,26 @@ ucp_rndv_is_get_zcopy(ucp_request_t *req, ucp_context_h context)
     return ((context->config.ext.rndv_mode == UCP_RNDV_MODE_GET_ZCOPY) ||
             ((context->config.ext.rndv_mode == UCP_RNDV_MODE_AUTO) &&
              (!UCP_MEM_IS_GPU(req->send.mem_type) ||
-              (req->send.length < context->config.ext.rndv_pipeline_send_thresh))));
+              (req->send.length < ucs_min(context->config.ext.rndv_pipeline_send_thresh,
+                                          context->config.ext.rndv_pipeline_thresh)))));
+}
+
+static UCS_F_ALWAYS_INLINE ucs_memory_type_t
+ucp_rndv_get_pipeline_memtype(ucp_context_h context, ucp_md_map_t md_map)
+{
+    ucp_md_index_t md_index;
+    uint64_t mem_types;
+    uct_md_attr_t *md_attr;
+
+    ucs_for_each_bit(md_index, md_map) {
+        md_attr = &context->tl_mds[md_index].attr;
+        mem_types = md_attr->cap.reg_mem_types & ~UCS_BIT(UCS_MEMORY_TYPE_HOST);
+        if (mem_types) {
+            return (ucs_memory_type_t) ucs_ffs64_safe(mem_types);
+        }
+    }
+
+    return UCS_MEMORY_TYPE_HOST;
 }
 
 static int ucp_rndv_is_recv_pipeline_needed(ucp_request_t *rndv_req,
@@ -42,6 +61,10 @@ static int ucp_rndv_is_recv_pipeline_needed(ucp_request_t *rndv_req,
     uct_md_attr_t *md_attr;
     uint64_t mem_types;
     int i;
+
+    if (rndv_rts_hdr->size > context->config.ext.rndv_pipeline_thresh) {
+        return 1;
+    }
 
     for (i = 0;
          (i < UCP_MAX_LANES) &&
@@ -902,7 +925,9 @@ ucp_rndv_send_frag_get_mem_type(ucp_request_t *sreq, ucs_ptr_map_key_t rreq_id,
     }
 
     /* get mpool for mem_type */
-    mpool_key.mem_type  = UCS_MEMORY_TYPE_HOST;
+    mpool_key.mem_type  = ucp_rndv_get_pipeline_memtype(worker->context,
+                                ucp_ep_config(sreq->send.ep)->key.rma_bw_md_map);
+    //ucs_error("%s: staging memtype: %x ", __FUNCTION__, mpool_key.mem_type);
     mpool_key.device_id = UCP_WORKER_MPOOL_DEFAULT_DEVICE_ID;
 
     frag_mp = ucp_worker_get_mem_type_mpool(worker, &mpool_key);
@@ -1064,7 +1089,9 @@ static void ucp_rndv_send_frag_rtr(ucp_worker_h worker, ucp_request_t *rndv_req,
         }
 
         /* get mpool for mem_type */
-        mpool_key.mem_type  = UCS_MEMORY_TYPE_HOST;
+        mpool_key.mem_type  = ucp_rndv_get_pipeline_memtype(worker->context,
+                                ucp_ep_config(rndv_req->send.ep)->key.rma_bw_md_map);
+        //ucs_error("%s: staging memtype: %x ", __FUNCTION__, mpool_key.mem_type);
         mpool_key.device_id = UCP_WORKER_MPOOL_DEFAULT_DEVICE_ID;
 
         frag_mp = ucp_worker_get_mem_type_mpool(worker, &mpool_key);

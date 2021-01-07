@@ -100,7 +100,7 @@ static ucs_config_field_t ucp_config_table[] = {
    " and disables aliasing.\n",
    ucs_offsetof(ucp_config_t, tls), UCS_CONFIG_TYPE_STRING_ARRAY},
 
-  {"ALLOC_PRIO", "md:sysv,md:posix,huge,thp,md:*,mmap,heap",
+  {"ALLOC_PRIO", "md:sysv,md:posix,md:cuda_cpy,huge,thp,md:*,mmap,heap",
    "Priority of memory allocation methods. Each item in the list can be either\n"
    "an allocation method (huge, thp, mmap, libc) or md:<NAME> which means to use the\n"
    "specified memory domain for allocation. NAME can be either a UCT component\n"
@@ -271,6 +271,10 @@ static ucs_config_field_t ucp_config_table[] = {
   {"MEM_TYPE_RNDV_FRAG_ELEMS_PER_CHUNK", "128",
    "Mem_type RNDV elements per chunk allocation\n",
    ucs_offsetof(ucp_config_t, ctx.mem_type_frag_elems_per_chunk), UCS_CONFIG_TYPE_MEMUNITS},
+
+  {"RNDV_PIPELINE_THRESH", "inf",
+   "RNDV size threshold to enable recv side pipeline for mem type\n",
+   ucs_offsetof(ucp_config_t, ctx.rndv_pipeline_thresh), UCS_CONFIG_TYPE_MEMUNITS},
 
   {"RNDV_PIPELINE_SEND_THRESH", "inf",
    "RNDV size threshold to enable sender side pipeline for mem type\n",
