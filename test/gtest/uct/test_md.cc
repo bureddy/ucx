@@ -82,12 +82,29 @@ test_md::test_md()
 
 void test_md::init()
 {
+    const std::vector<ucs_memory_type_t>
+        supported_mem_types = mem_buffer::supported_mem_types();
     ucs::test_base::init();
     UCS_TEST_CREATE_HANDLE(uct_md_h, m_md, uct_md_close, uct_md_open,
                            GetParam().component, GetParam().md_name.c_str(),
                            m_md_config);
 
     ucs_status_t status = uct_md_query(m_md, &m_md_attr);
+
+    /* Set context to allow device allocations through uct_mem_alloc */
+
+
+    for (std::vector<ucs_memory_type_t>::const_iterator
+         iter = supported_mem_types.begin();
+         iter != supported_mem_types.end(); ++iter) {
+         if (m_md_attr.cap.alloc_mem_types & UCS_BIT(*iter)) {
+            if ((*iter == UCS_MEMORY_TYPE_CUDA) ||
+                (*iter == UCS_MEMORY_TYPE_CUDA_MANAGED)) {
+                void *address = mem_buffer::allocate(1, (ucs_memory_type_t)*iter);
+                mem_buffer::release(address, (ucs_memory_type_t)*iter);
+            }
+        }
+    }
     ASSERT_UCS_OK(status);
 
     check_skip_test();
@@ -237,6 +254,7 @@ UCS_TEST_SKIP_COND_P(test_md, alloc,
     size_t size, orig_size;
     ucs_status_t status;
     void *address;
+    unsigned mem_type;
     uct_allocated_memory_t mem;
     uct_mem_alloc_params_t params;
 
@@ -247,30 +265,34 @@ UCS_TEST_SKIP_COND_P(test_md, alloc,
                              UCT_MEM_ALLOC_PARAM_FIELD_NAME;
     params.flags           = UCT_MD_MEM_ACCESS_ALL;
     params.name            = "test";
-    params.mem_type        = UCS_MEMORY_TYPE_HOST;
     params.mds.mds         = &md_ref;
     params.mds.count       = 1;
 
-    for (unsigned i = 0; i < 300; ++i) {
-        size = orig_size = ucs::rand() % 65536;
-        if (size == 0) {
-            continue;
+    ucs_for_each_bit(mem_type, md_attr().cap.alloc_mem_types) {
+        for (unsigned i = 0; i < 300; ++i) {
+            size = orig_size = ucs::rand() % 65536;
+            if (size == 0) {
+                continue;
+            }
+
+            address         = NULL;
+            params.address  = address;
+            params.mem_type = (ucs_memory_type_t)mem_type;
+            status = uct_mem_alloc(size, &method, 1, &params, &mem);
+            EXPECT_GT(mem.length, 0ul);
+            address = mem.address;
+            size    = mem.length;
+
+            ASSERT_UCS_OK(status);
+            EXPECT_GE(size, orig_size);
+            EXPECT_TRUE(address != NULL);
+            EXPECT_TRUE(mem.memh != UCT_MEM_HANDLE_NULL);
+
+            if (mem_type == UCS_MEMORY_TYPE_HOST) {
+                memset(address, 0xBB, size);
+            }
+            uct_mem_free(&mem);
         }
-
-        address        = NULL;
-        params.address = address;
-        status = uct_mem_alloc(size, &method, 1, &params, &mem);
-        EXPECT_GT(mem.length, 0ul);
-        address = mem.address;
-        size    = mem.length;
-
-        ASSERT_UCS_OK(status);
-        EXPECT_GE(size, orig_size);
-        EXPECT_TRUE(address != NULL);
-        EXPECT_TRUE(mem.memh != UCT_MEM_HANDLE_NULL);
-
-        memset(address, 0xBB, size);
-        uct_mem_free(&mem);
     }
 }
 

@@ -67,9 +67,11 @@ UCS_TEST_P(test_mem, nomd_alloc) {
 
 UCS_TEST_P(test_mem, md_alloc) {
     void *address = NULL;
+    static unsigned mem_type_ctx_created = 0;
     size_t length = min_length;
     uct_alloc_method_t methods[3];
     uct_allocated_memory mem;
+    unsigned mem_type;
     std::vector<md_resource> md_resources;
     uct_md_attr_t md_attr;
     ucs_status_t status;
@@ -106,25 +108,40 @@ UCS_TEST_P(test_mem, md_alloc) {
         status = uct_md_query(md, &md_attr);
         ASSERT_UCS_OK(status);
 
-        for (nonblock = 0; nonblock <= 1; ++nonblock) {
-            int flags = nonblock ? UCT_MD_MEM_FLAG_NONBLOCK : 0;
+        ucs_for_each_bit(mem_type, md_attr.cap.alloc_mem_types) {
+            params.mem_type = (ucs_memory_type_t)mem_type;
+            for (nonblock = 0; nonblock <= 1; ++nonblock) {
+                if ((nonblock == 1) && (mem_type != UCS_MEMORY_TYPE_HOST)) {
+                    continue;
+                }
+                if ((mem_type == UCS_MEMORY_TYPE_CUDA)
+                    || (mem_type == UCS_MEMORY_TYPE_CUDA_MANAGED)) {
+                    if (!mem_type_ctx_created) {
+                        address = mem_buffer::allocate(1, (ucs_memory_type_t)mem_type);
+                        mem_buffer::release(address, (ucs_memory_type_t)mem_type);
+                        mem_type_ctx_created = 1;
 
-            flags         |= UCT_MD_MEM_ACCESS_ALL;
-            params.flags   = flags;
-            params.mds.mds = &md;
+                    }
+                }
+                int flags = nonblock ? UCT_MD_MEM_FLAG_NONBLOCK : 0;
 
-            status = uct_mem_alloc(length, methods, 3, &params, &mem);
-            ASSERT_UCS_OK(status);
+                flags         |= UCT_MD_MEM_ACCESS_ALL;
+                params.flags   = flags;
+                params.mds.mds = &md;
 
-            if (md_attr.cap.flags & UCT_MD_FLAG_ALLOC) {
-                EXPECT_EQ(UCT_ALLOC_METHOD_MD, mem.method);
-            } else {
-                EXPECT_NE(UCT_ALLOC_METHOD_MD, mem.method);
+                status = uct_mem_alloc(length, methods, 3, &params, &mem);
+                ASSERT_UCS_OK(status);
+
+                if (md_attr.cap.flags & UCT_MD_FLAG_ALLOC) {
+                    EXPECT_EQ(UCT_ALLOC_METHOD_MD, mem.method);
+                } else {
+                    EXPECT_NE(UCT_ALLOC_METHOD_MD, mem.method);
+                }
+
+                check_mem(mem, min_length);
+
+                uct_mem_free(&mem);
             }
-
-            check_mem(mem, min_length);
-
-            uct_mem_free(&mem);
         }
 
         uct_md_close(md);
