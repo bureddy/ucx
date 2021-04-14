@@ -191,6 +191,10 @@ static ucs_config_field_t uct_ib_md_config_table[] = {
      "Enable relaxed ordering for PCIe transactions to improve performance on some systems.",
      ucs_offsetof(uct_ib_md_config_t, mr_relaxed_order), UCS_CONFIG_TYPE_ON_OFF_AUTO},
 
+    {"REG_CUDA_RANGE", "n",
+     "Enable registering whole cuda address range for a given range address",
+     ucs_offsetof(uct_ib_md_config_t, reg_cuda_range), UCS_CONFIG_TYPE_BOOL},
+
     {NULL}
 };
 
@@ -1271,12 +1275,16 @@ uct_ib_md_parse_reg_methods(uct_ib_md_t *md, uct_md_attr_t *md_attr,
                                                md->memh_struct_size;
             rcache_params.max_alignment      = ucs_get_page_size();
             rcache_params.ucm_events         = UCM_EVENT_VM_UNMAPPED;
-            if (md_attr->cap.reg_mem_types & ~UCS_BIT(UCS_MEMORY_TYPE_HOST)) {
-                rcache_params.ucm_events     |= UCM_EVENT_MEM_TYPE_FREE;
-            }
             rcache_params.context            = md;
             rcache_params.ops                = &uct_ib_rcache_ops;
             rcache_params.flags              = UCS_RCACHE_FLAG_PURGE_ON_FORK;
+            if (md_attr->cap.reg_mem_types & ~UCS_BIT(UCS_MEMORY_TYPE_HOST)) {
+                rcache_params.ucm_events     |= UCM_EVENT_MEM_TYPE_FREE;
+
+                if (md_config->reg_cuda_range) {
+                    rcache_params.flags |= UCS_RCACHE_FLAG_REG_CUDA_RANGE;
+                }
+            }
 
             status = ucs_rcache_create(&rcache_params, uct_ib_device_name(&md->dev),
                                        UCS_STATS_RVAL(md->stats), &md->rcache);

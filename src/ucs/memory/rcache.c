@@ -19,6 +19,7 @@
 #include <ucs/sys/sys.h>
 #include <ucs/type/spinlock.h>
 #include <ucm/api/ucm.h>
+#include <cuda.h>
 
 #include "rcache.h"
 #include "rcache_int.h"
@@ -761,6 +762,31 @@ ucs_rcache_create_region(ucs_rcache_t *rcache, void *address, size_t length,
     ucs_status_t status;
     int error, merged;
 
+    ucs_memory_type_t mem_type;
+    CUdeviceptr pbase;
+    size_t psize;
+    unsigned value       = 1;
+    int is_managed       = 0;
+    CUresult cu_err;
+
+    mem_type = UCS_MEMORY_TYPE_HOST;
+
+    cu_err = cuPointerGetAttribute((void *)&value,
+                                   CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
+                                   (CUdeviceptr)address);
+    if (cu_err == CUDA_SUCCESS) {
+        if (value == CU_MEMORYTYPE_DEVICE) {
+
+            cuPointerGetAttribute((void *)&is_managed,
+                                  CU_POINTER_ATTRIBUTE_IS_MANAGED,
+                                  (CUdeviceptr)address);
+            mem_type = (is_managed) ?
+                UCS_MEMORY_TYPE_CUDA_MANAGED : UCS_MEMORY_TYPE_CUDA;
+        } else {
+            mem_type = UCS_MEMORY_TYPE_LAST;
+        }
+    }
+
     ucs_trace_func("rcache=%s, address=%p, length=%zu", rcache->name, address,
                    length);
 
@@ -772,6 +798,26 @@ retry:
                                  rcache->params.alignment);
     end    = ucs_align_up_pow2  ((uintptr_t)address + length,
                                  rcache->params.alignment);
+    if (UCS_MEMORY_TYPE_CUDA == mem_type &&
+        rcache->params.flags & UCS_RCACHE_FLAG_REG_CUDA_RANGE) {
+        if (CUDA_SUCCESS != cuMemGetAddressRange(&pbase, &psize, (CUdeviceptr) address)) {
+            return UCS_ERR_IO_ERROR;
+        }
+        address = (void *) pbase;
+        start  = ucs_align_down_pow2((uintptr_t)address,
+                rcache->params.alignment);
+        end    = ucs_align_up_pow2  ((uintptr_t)address + psize,
+                rcache->params.alignment);
+        ucs_debug("registering cuda memory range. base:%p size:%ld (addr:%p length:%ld)",
+                  (void *)pbase, psize, address, length);
+    } else {
+        /* Align to page size */
+        start  = ucs_align_down_pow2((uintptr_t)address,
+                rcache->params.alignment);
+        end    = ucs_align_up_pow2  ((uintptr_t)address + length,
+                rcache->params.alignment);
+    }
+
     region = NULL;
     merged = 0;
 
@@ -865,7 +911,7 @@ retry:
             ucs_free(region);
             goto out_unlock;
         }
-        
+
         ucs_rcache_lru_evict(rcache);
     }
 

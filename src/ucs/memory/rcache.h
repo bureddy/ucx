@@ -37,6 +37,7 @@ typedef struct ucs_rcache_region  ucs_rcache_region_t;
 enum {
     UCS_RCACHE_REGION_FLAG_REGISTERED = UCS_BIT(0), /**< Memory registered */
     UCS_RCACHE_REGION_FLAG_PGTABLE    = UCS_BIT(1), /**< In the page table */
+    UCS_RCACHE_FLAG_REG_CUDA_RANGE    = UCS_BIT(2), /**< Register whole cuda address range */
 };
 
 /*
@@ -147,7 +148,7 @@ struct ucs_rcache_region {
     uint8_t                lru_flags; /**< LRU flags */
     union {
         uint64_t           priv;      /**< Used internally */
-        unsigned long     *pfn;       /**< Pointer to PFN array. In case if requested 
+        unsigned long     *pfn;       /**< Pointer to PFN array. In case if requested
                                            evaluation more than 1 page - PFN array is
                                            allocated, if 1 page requested - used
                                            in-place priv value. */

@@ -11,12 +11,12 @@ AUTOMAKE_OPTIONS    = nostdinc # avoid collision with built-in debug.h
 lib_LTLIBRARIES     = libucs.la
 bin_PROGRAMS        =
 
-libucs_la_CPPFLAGS = $(BASE_CPPFLAGS) -DUCX_MODULE_DIR=\"$(moduledir)\" \
+libucs_la_CPPFLAGS = $(BASE_CPPFLAGS) $(CUDA_CPPFLAGS) -DUCX_MODULE_DIR=\"$(moduledir)\" \
                      -DUCX_CONF_DIR=\"$(ucx_conf_dir)\"
-libucs_la_CFLAGS   = $(BASE_CFLAGS)
-libucs_la_LDFLAGS  = -ldl $(NUMA_LIBS) -version-info $(SOVERSION)
+libucs_la_CFLAGS   = $(BASE_CFLAGS) $(CUDA_CFLAGS)
+libucs_la_LDFLAGS  = -ldl $(NUMA_LIBS) $(CUDA_LDFLAGS) -version-info $(SOVERSION)
 libucs_ladir       = $(includedir)/ucs
-libucs_la_LIBADD   = $(LIBM) $(top_builddir)/src/ucm/libucm.la
+libucs_la_LIBADD   = $(LIBM) $(top_builddir)/src/ucm/libucm.la $(CUDA_LIBS)
 
 nobase_dist_libucs_la_HEADERS = \
 	arch/aarch64/bitops.h \
